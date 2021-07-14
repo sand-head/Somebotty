@@ -7,6 +7,7 @@ use twitch_irc::{
   login::StaticLoginCredentials, message::PrivmsgMessage, SecureTCPTransport, TwitchIRCClient,
 };
 
+const PREFIX: char = '!';
 pub static COMMANDS: Lazy<HashMap<String, String>> = Lazy::new(get_commands);
 
 fn get_commands() -> HashMap<String, String> {
@@ -28,7 +29,7 @@ fn get_commands() -> HashMap<String, String> {
     let entry = entry.unwrap();
     let contents = fs::read_to_string(entry.path()).unwrap();
     let name = entry.file_name().into_string().unwrap();
-    let name = &name[..(name.len() - 5)];
+    let name = format!("{}{}", PREFIX, &name[..(name.len() - 5)]);
     println!("loaded {} command", name);
     map.insert(name.to_string(), format!("{{{}}}", contents));
   }
@@ -41,7 +42,7 @@ pub async fn handle_message(
   client: TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>,
 ) {
   if_chain! {
-    if let Some(command) = message.message_text.split(' ').nth(0);
+    if let Some(command) = message.message_text.split(' ').next();
     let command = COMMANDS.get(command);
     if let Some(command) = command;
     then {

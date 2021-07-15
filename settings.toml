@@ -1,5 +1,9 @@
 debug = false
 
 [twitch]
+# you're gonna need tokens btw, use this url:
+# https://id.twitch.tv/oauth2/authorize?client_id=<your client ID>&redirect_uri=<your registered redirect URI>&response_type=code&scope=chat:read%20chat:edit%20channel:moderate
+username = ""
 client_id = ""
 client_secret = ""
+redirect_uri = ""

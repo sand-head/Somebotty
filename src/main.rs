@@ -3,8 +3,9 @@ use sled::Db;
 use tokens::SledTokenStorage;
 use tokio::sync::mpsc::UnboundedReceiver;
 use twitch_irc::{
-  login::RefreshingLoginCredentials, message::ServerMessage, ClientConfig, SecureTCPTransport,
-  TwitchIRCClient,
+  login::{RefreshingLoginCredentials, TokenStorage},
+  message::ServerMessage,
+  ClientConfig, SecureTCPTransport, TwitchIRCClient,
 };
 
 use commands::handle_command;
@@ -24,13 +25,22 @@ async fn read_messages(
   while let Some(message) = incoming_messages.recv().await {
     if let ServerMessage::Privmsg(privmsg) = message {
       handle_command(privmsg, client.clone()).await
+    } else {
+      println!("{:?}", message);
     }
   }
 }
 
 #[tokio::main]
-pub async fn main() {
-  let storage = SledTokenStorage::default();
+pub async fn main() -> anyhow::Result<()> {
+  let mut storage = SledTokenStorage::default();
+  if !storage.has_token()? {
+    println!("no tokens detected, listening...");
+    let tokens = tokens::get_tokens().await?;
+    println!("ok we got em, thanks.");
+    storage.update_token(&tokens.into()).await?;
+  }
+
   let config = ClientConfig::new_simple(RefreshingLoginCredentials::new(
     SETTINGS.twitch.username.clone(),
     SETTINGS.twitch.client_id.clone(),
@@ -44,5 +54,7 @@ pub async fn main() {
 
   client.join("sand_head".to_owned());
 
-  join_handle.await.unwrap();
+  join_handle.await?;
+
+  Ok(())
 }

@@ -7,6 +7,7 @@ pub struct TwitchSettings {
   pub client_id: String,
   pub client_secret: String,
   pub redirect_uri: String,
+  pub join_channels: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

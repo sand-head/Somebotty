@@ -52,7 +52,10 @@ pub async fn main() -> anyhow::Result<()> {
   // start consuming incoming messages
   let join_handle = tokio::spawn(read_messages(incoming_messages, client.clone()));
 
-  client.join("sand_head".to_owned());
+  // join channels in settings
+  for channel in &SETTINGS.twitch.join_channels {
+    client.join(channel.to_owned());
+  }
 
   join_handle.await?;
 

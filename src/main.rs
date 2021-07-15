@@ -14,7 +14,7 @@ mod commands;
 mod settings;
 mod tokens;
 
-pub static DB: Lazy<Db> = Lazy::new(|| sled::open("somebotty").unwrap());
+pub static DB: Lazy<Db> = Lazy::new(|| sled::open("somebotty-db").unwrap());
 pub static SETTINGS: Lazy<Settings> = Lazy::new(|| Settings::new().unwrap());
 
 async fn read_messages(

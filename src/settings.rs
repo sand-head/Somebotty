@@ -19,6 +19,7 @@ impl Settings {
     let mut settings = Config::default();
 
     settings.merge(File::with_name("settings"))?;
+    settings.merge(File::with_name("settings-local").required(false))?;
     settings.merge(Environment::with_prefix("app"))?;
 
     settings.try_into()

@@ -4,8 +4,10 @@ use bobascript::{compiler, vm::VM};
 use if_chain::if_chain;
 use once_cell::sync::Lazy;
 use twitch_irc::{
-  login::StaticLoginCredentials, message::PrivmsgMessage, SecureTCPTransport, TwitchIRCClient,
+  login::RefreshingLoginCredentials, message::PrivmsgMessage, SecureTCPTransport, TwitchIRCClient,
 };
+
+use crate::tokens::SledTokenStorage;
 
 const PREFIX: char = '!';
 pub static COMMANDS: Lazy<HashMap<String, String>> = Lazy::new(get_commands);
@@ -37,9 +39,9 @@ fn get_commands() -> HashMap<String, String> {
   map
 }
 
-pub async fn handle_message(
+pub async fn handle_command(
   message: PrivmsgMessage,
-  client: TwitchIRCClient<SecureTCPTransport, StaticLoginCredentials>,
+  client: TwitchIRCClient<SecureTCPTransport, RefreshingLoginCredentials<SledTokenStorage>>,
 ) {
   if_chain! {
     if let Some(command) = message.message_text.split(' ').next();

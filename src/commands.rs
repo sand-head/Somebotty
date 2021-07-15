@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs};
 
-use bobascript::{compiler, vm::VM};
+use bobascript::{compiler, value::Value, vm::VM};
 use if_chain::if_chain;
 use once_cell::sync::Lazy;
 use twitch_irc::{
@@ -51,7 +51,13 @@ pub async fn handle_command(
       let value = {
         let mut vm = VM::default();
         let function = compiler::compile_expr(command).unwrap();
-        vm.evaluate(function).unwrap().to_string()
+        let value = vm.evaluate(function).unwrap();
+
+        if let Value::String(str) = value {
+          str
+        } else {
+          value.to_string()
+        }
       };
       println!("sending: {:?}", value);
       client.say("sand_head".to_owned(), value).await.unwrap();

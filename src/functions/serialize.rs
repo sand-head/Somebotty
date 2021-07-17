@@ -85,7 +85,10 @@ pub fn get(params: &[Value]) -> Result<Value, RuntimeError> {
     ))
   } else if let Value::String(key) = params.get(0).unwrap() {
     Ok(
-      if let Some(value) = DB.get(key).map_err(|_| RuntimeError::Unknown)? {
+      if let Some(value) = DB
+        .get(&format!("VAR#{}", key))
+        .map_err(|_| RuntimeError::Unknown)?
+      {
         bincode::deserialize::<SerializedValue>(&value)
           .unwrap()
           .try_into()
@@ -113,7 +116,7 @@ pub fn set(params: &[Value]) -> Result<Value, RuntimeError> {
   let value = params.get(1).unwrap();
   if let Value::String(key) = key {
     DB.insert(
-      key,
+      &format!("VAR#{}", key),
       bincode::serialize(&SerializedValue::try_from(value.clone())?).unwrap(),
     )
     .map_err(|_| RuntimeError::Unknown)?;

@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs, path::Path};
 
 use bobascript::{compiler, value::Value, vm::VM};
 use if_chain::if_chain;
-use once_cell::sync::Lazy;
+use once_cell::sync::{Lazy, OnceCell};
 use tokio::sync::RwLock;
 use twitch_irc::{
   login::RefreshingLoginCredentials, message::PrivmsgMessage, SecureTCPTransport, TwitchIRCClient,
@@ -11,10 +11,11 @@ use twitch_irc::{
 use crate::{functions::add_functions, tokens::SledTokenStorage};
 
 const PREFIX: char = '!';
-// I really want to lazily load & compile expressions...
-static COMMANDS: Lazy<RwLock<HashMap<String, String>>> = Lazy::new(|| RwLock::new(get_commands()));
+// I really want to compile expressions...
+static COMMANDS: Lazy<RwLock<HashMap<String, OnceCell<String>>>> =
+  Lazy::new(|| RwLock::new(get_commands()));
 
-fn get_commands() -> HashMap<String, String> {
+fn get_commands() -> HashMap<String, OnceCell<String>> {
   println!("getting commands...");
   let mut map = HashMap::new();
   let boba_files: Vec<_> = fs::read_dir("./commands")
@@ -28,26 +29,37 @@ fn get_commands() -> HashMap<String, String> {
     })
     .collect();
 
-  println!("found {} commands...", boba_files.len());
-  for entry in boba_files {
-    let entry = entry.unwrap();
-    let contents = fs::read_to_string(entry.path()).unwrap();
+  for entry in &boba_files {
+    let entry = entry.as_ref().unwrap();
     let name = entry.file_name().into_string().unwrap();
     let name = format!("{}{}", PREFIX, &name[..(name.len() - 5)]);
-    println!("loaded {} command", name);
-    map.insert(name, format!("{{{}}}", contents));
+    map.insert(name, OnceCell::new());
   }
+  println!("found {} commands.", boba_files.len());
 
   map
 }
 
+pub async fn get_command(name: &'_ str) -> Option<String> {
+  let commands = COMMANDS.read().await;
+  commands.get(name).map(|command| {
+    command
+      .get_or_init(|| {
+        println!("loading {} command", name);
+        fs::read_to_string(format!("./commands/{}.boba", &name[1..]))
+          .map(|c| format!("{{{}}}", c))
+          .unwrap()
+      })
+      .clone()
+  })
+}
+
 pub async fn create_command(path: &'_ Path) {
-  let contents = fs::read_to_string(path).unwrap();
   let name = path.file_name().unwrap().to_str().unwrap();
   let name = format!("{}{}", PREFIX, &name[..(name.len() - 5)]);
   println!("loaded {} command", name);
   let mut commands = COMMANDS.write().await;
-  commands.insert(name, format!("{{{}}}", contents));
+  commands.insert(name, OnceCell::new());
 }
 
 pub async fn delete_command(path: &'_ Path) {
@@ -68,9 +80,8 @@ pub async fn handle_command(
   client: TwitchIRCClient<SecureTCPTransport, RefreshingLoginCredentials<SledTokenStorage>>,
 ) {
   if_chain! {
-    if let Some(command) = message.message_text.split(' ').next();
-    let commands = COMMANDS.read().await;
-    let command = commands.get(command);
+    if let Some(command_name) = message.message_text.split(' ').next();
+    let command = get_command(command_name).await;
     if let Some(command) = command;
     then {
       let value = {

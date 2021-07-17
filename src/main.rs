@@ -1,3 +1,6 @@
+use std::{sync::mpsc::channel, time::Duration};
+
+use notify::{watcher, DebouncedEvent, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
 use sled::Db;
 use tokens::SledTokenStorage;
@@ -8,10 +11,13 @@ use twitch_irc::{
   ClientConfig, SecureTCPTransport, TwitchIRCClient,
 };
 
-use commands::handle_command;
+use commands::{delete_command, handle_command, update_command};
 use settings::Settings;
 
+use crate::commands::create_command;
+
 mod commands;
+mod functions;
 mod settings;
 mod tokens;
 
@@ -33,6 +39,7 @@ async fn read_messages(
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
+  // use sled for storing access tokens
   let mut storage = SledTokenStorage::default();
   if !storage.has_token()? {
     println!("no tokens detected, listening...");
@@ -40,6 +47,11 @@ pub async fn main() -> anyhow::Result<()> {
     println!("ok we got em, thanks.");
     storage.update_token(&tokens.into()).await?;
   }
+
+  // watch commands directory, for hot-reload
+  let (tx, rx) = channel();
+  let mut watcher = watcher(tx, Duration::from_secs(10))?;
+  watcher.watch("./commands", RecursiveMode::NonRecursive)?;
 
   let config = ClientConfig::new_simple(RefreshingLoginCredentials::new(
     SETTINGS.twitch.username.clone(),
@@ -57,7 +69,24 @@ pub async fn main() -> anyhow::Result<()> {
     client.join(channel.to_owned());
   }
 
-  join_handle.await?;
+  loop {
+    match rx.recv() {
+      Ok(event) => match event {
+        DebouncedEvent::Create(path) => create_command(path.as_path()).await,
+        DebouncedEvent::Write(path) => update_command(path.as_path()).await,
+        DebouncedEvent::Remove(path) => delete_command(path.as_path()).await,
+        DebouncedEvent::Rename(_, _) => {
+          // todo: delete and create?
+        }
+        _ => (),
+      },
+      Err(e) => {
+        eprintln!("error: {:?}", e);
+        break;
+      }
+    }
+  }
 
+  join_handle.await?;
   Ok(())
 }

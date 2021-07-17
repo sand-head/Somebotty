@@ -8,7 +8,7 @@ use twitch_irc::login::{GetAccessTokenResponse, TokenStorage, UserAccessToken};
 
 use crate::{DB, SETTINGS};
 
-const TOKEN_KEY: &'static str = "user_access_token";
+const TOKEN_KEY: &str = "user_access_token";
 
 pub struct SledTokenStorage {
   options: DefaultOptions,
@@ -28,12 +28,7 @@ impl Debug for SledTokenStorage {
 
 impl SledTokenStorage {
   pub fn has_token(&self) -> anyhow::Result<bool> {
-    let tokens = DB.get(TOKEN_KEY)?;
-    if let None = tokens {
-      Ok(false)
-    } else {
-      Ok(true)
-    }
+    Ok(DB.get(TOKEN_KEY)?.is_some())
   }
 }
 
@@ -44,7 +39,7 @@ impl TokenStorage for SledTokenStorage {
 
   async fn load_token(&mut self) -> Result<UserAccessToken, Self::LoadError> {
     let tokens = DB.get(TOKEN_KEY)?;
-    if let None = tokens {
+    if tokens.is_none() {
       bail!("no token in database");
     }
     Ok(self.options.deserialize(&tokens.unwrap()).unwrap())

@@ -7,4 +7,5 @@ target
 .dockerignore
 .gitignore
 Dockerfile
+settings.toml
 settings-local.toml

@@ -6,7 +6,7 @@ use std::{
 use bobascript::{value::Value, vm::RuntimeError};
 use serde::{Deserialize, Serialize};
 
-use crate::DB;
+use crate::{arity, DB};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum SerializedValue {
@@ -77,13 +77,9 @@ impl TryInto<Value> for SerializedValue {
 }
 
 pub fn get(params: &[Value]) -> Result<Value, RuntimeError> {
-  println!("params: {:?}", params);
-  if params.len() != 1 {
-    Err(RuntimeError::IncorrectParameterCount(
-      1,
-      params.len().try_into().unwrap(),
-    ))
-  } else if let Value::String(key) = params.get(0).unwrap() {
+  arity!(1, params);
+
+  if let Value::String(key) = params.get(0).unwrap() {
     Ok(
       if let Some(value) = DB
         .get(&format!("VAR#{}", key))
@@ -104,13 +100,7 @@ pub fn get(params: &[Value]) -> Result<Value, RuntimeError> {
 }
 
 pub fn set(params: &[Value]) -> Result<Value, RuntimeError> {
-  println!("params: {:?}", params);
-  if params.len() != 2 {
-    return Err(RuntimeError::IncorrectParameterCount(
-      2,
-      params.len().try_into().unwrap(),
-    ));
-  }
+  arity!(2, params);
 
   let key = params.get(0).unwrap();
   let value = params.get(1).unwrap();

@@ -84,20 +84,29 @@ pub async fn handle_command(
     let command = get_command(command_name).await;
     if let Some(command) = command;
     then {
-      let value = {
+      let result: Result<String, String> = {
         let mut vm = VM::default();
         add_functions(&mut vm);
-        let function = compiler::compile_expr(command).unwrap();
-        let value = vm.evaluate(function).unwrap();
-
-        if let Value::String(str) = value {
-          str
-        } else {
-          value.to_string()
-        }
+        compiler::compile_expr(command)
+          .map_err(|e| e.to_string())
+          .and_then(|f| vm.evaluate(f).map_err(|e| e.to_string()))
+          .map(|v| if let Value::String(str) = v {
+            str
+          } else {
+            v.to_string()
+          })
       };
-      println!("sending: {:?}", value);
-      client.say("sand_head".to_owned(), value).await.unwrap();
+
+      match result {
+        Ok(value) => {
+          println!("sending: {:?}", value);
+          client.say("sand_head".to_owned(), value).await.unwrap();
+        }
+        Err(e) => {
+          eprintln!("error: {:?}", e);
+          client.say("sand_head".to_owned(), e.to_string()).await.unwrap();
+        }
+      }
     }
   }
 }

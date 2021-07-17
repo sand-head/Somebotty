@@ -9,9 +9,9 @@ edition = "2018"
 anyhow = "1.0"
 async-trait = "0.1.50"
 bincode = "1.3"
-bobascript = "0.1.2"
+bobascript = "0.1.3"
 # todo: re-export ast in `bobascript`
-bobascript-parser = "0.1.2"
+bobascript-parser = "0.1.3"
 chrono = "0.4"
 config = { version = "0.11", features = ["toml"] }
 notify = "4.0"

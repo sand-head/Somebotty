@@ -73,12 +73,13 @@ pub async fn main() -> anyhow::Result<()> {
     match rx.recv() {
       Ok(event) => match event {
         DebouncedEvent::Create(path) => create_command(path.as_path()).await,
-        DebouncedEvent::Write(path) => update_command(path.as_path()).await,
-        DebouncedEvent::Remove(path) => delete_command(path.as_path()).await,
-        DebouncedEvent::Rename(_, _) => {
-          // todo: delete and create?
+        DebouncedEvent::NoticeWrite(path) => update_command(path.as_path()).await,
+        DebouncedEvent::NoticeRemove(path) => delete_command(path.as_path()).await,
+        DebouncedEvent::Rename(old, new) => {
+          delete_command(old.as_path()).await;
+          create_command(new.as_path()).await;
         }
-        _ => (),
+        _ => println!("event: {:?}", event),
       },
       Err(e) => {
         eprintln!("error: {:?}", e);

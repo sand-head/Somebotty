@@ -52,7 +52,7 @@ impl TokenStorage for SledTokenStorage {
 }
 
 pub async fn get_tokens() -> anyhow::Result<GetAccessTokenResponse> {
-  let server = tiny_http::Server::http("0.0.0.0:80").unwrap();
+  let server = tiny_http::Server::http("0.0.0.0:8080").unwrap();
   Ok(loop {
     match server.recv() {
       Ok(request) => {

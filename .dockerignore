@@ -1,0 +1,10 @@
+.git
+.github
+.vscode
+commands
+somebotty-db
+target
+.dockerignore
+.gitignore
+Dockerfile
+settings-local.toml

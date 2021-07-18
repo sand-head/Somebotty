@@ -31,7 +31,7 @@ async fn read_messages(
   while let Some(message) = incoming_messages.recv().await {
     if let ServerMessage::Privmsg(privmsg) = message {
       handle_command(privmsg, client.clone()).await
-    } else {
+    } else if SETTINGS.debug {
       println!("{:?}", message);
     }
   }
@@ -72,14 +72,25 @@ pub async fn main() -> anyhow::Result<()> {
   loop {
     match rx.recv() {
       Ok(event) => match event {
-        DebouncedEvent::Create(path) => create_command(path.as_path()).await,
-        DebouncedEvent::NoticeWrite(path) => update_command(path.as_path()).await,
-        DebouncedEvent::NoticeRemove(path) => delete_command(path.as_path()).await,
-        DebouncedEvent::Rename(old, new) => {
+        // make sure we're only tracking files containing BobaScript
+        DebouncedEvent::Create(path) if path.ends_with(".boba") => {
+          create_command(path.as_path()).await;
+        }
+        DebouncedEvent::NoticeWrite(path) if path.ends_with(".boba") => {
+          update_command(path.as_path()).await;
+        }
+        DebouncedEvent::NoticeRemove(path) if path.ends_with(".boba") => {
+          delete_command(path.as_path()).await;
+        }
+        DebouncedEvent::Rename(old, new) if old.ends_with(".boba") && new.ends_with(".boba") => {
           delete_command(old.as_path()).await;
           create_command(new.as_path()).await;
         }
-        _ => println!("event: {:?}", event),
+        _ => {
+          if SETTINGS.debug {
+            println!("event: {:?}", event)
+          }
+        }
       },
       Err(e) => {
         eprintln!("error: {:?}", e);

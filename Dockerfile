@@ -7,7 +7,7 @@ RUN strip ./target/release/somebotty
 
 FROM debian:buster-slim as runtime
 RUN apt-get update && \
-    apt-get install libssl1.1 -y --no-install-recommends
+    apt-get install ca-certificates libssl1.1 -y --no-install-recommends
 
 RUN groupadd -g 999 somebotty && \
     useradd -r -u 999 -g somebotty somebotty && \

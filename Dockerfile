@@ -12,7 +12,7 @@ RUN apt-get update && \
 WORKDIR /usr/app
 RUN groupadd -g 999 somebotty && \
     useradd -r -u 999 -g somebotty somebotty && \
-    mkdir -p somebotty-db \
+    mkdir -p somebotty-db && \
     chown -R somebotty:somebotty somebotty-db
 COPY --chown=somebotty:somebotty --from=builder /usr/app/target/release/somebotty .
 

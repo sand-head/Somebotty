@@ -46,9 +46,7 @@ pub async fn get_command(name: &'_ str) -> Option<String> {
     command
       .get_or_init(|| {
         println!("loading {} command", name);
-        fs::read_to_string(format!("./commands/{}.boba", &name[1..]))
-          .map(|c| format!("{{{}}}", c))
-          .unwrap()
+        fs::read_to_string(format!("./commands/{}.boba", &name[1..])).unwrap()
       })
       .clone()
   })
@@ -87,11 +85,17 @@ pub async fn handle_command(
       let result: Result<String, String> = {
         let mut vm = VM::default();
         add_functions(&mut vm);
-        compiler::compile_expr(command)
+        compiler::compile(command)
           .map_err(|e| e.to_string())
-          .and_then(|f| vm.evaluate(f).map_err(|e| e.to_string()))
+          .and_then(|f| vm.interpret(f).map_err(|e| e.to_string()))
           .map(|v| if let Value::String(str) = v {
             str
+          } else if let Value::Tuple(tuple) = &v {
+            if tuple.is_empty() {
+              "".to_string()
+            } else {
+              v.to_string()
+            }
           } else {
             v.to_string()
           })

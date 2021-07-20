@@ -1,4 +1,3 @@
 let eorzea_multiplier = 3600 / 175;
-// for some reason it refuses to use `epoch` as a variable name here
 let timestamp = epoch() * eorzea_multiplier;
 "The current time in Eorzea right now is " + format_date("%-I:%M %P", timestamp) + "."
